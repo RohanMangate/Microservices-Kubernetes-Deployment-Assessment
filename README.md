@@ -1,68 +1,94 @@
-# Microservices-Task
+# Microservices Kubernetes Deployment
 
 ## Overview
-This document provides details on testing various services after running the `docker-compose` file. These services include User, Product, Order, and Gateway Services. Each service has its own endpoints for testing purposes.
+This project demonstrates deployment of multiple Node.js microservices on Kubernetes using Minikube. The setup includes User, Product, Order, and Gateway services, with proper communication between them.
 
 ---
 
-## Services and Endpoints
+## Prerequisites
 
-### **User Service**
-- **Base URL:** `http://localhost:3000`
-- **Endpoints:**
-  - **List Users:**  
-    ```
-    curl http://localhost:3000/users
-    ```
-    Or open in your browser: [http://localhost:3000/users](http://localhost:3000/users)
+- Docker Desktop installed
+- Minikube installed
+- kubectl installed
 
----
+Start Minikube before proceeding:
 
-### **Product Service**
-- **Base URL:** `http://localhost:3001`
-- **Endpoints:**
-  - **List Products:**  
-    ```
-    curl http://localhost:3001/products
-    ```
-    Or open in your browser: [http://localhost:3001/products](http://localhost:3001/products)
+minikube start --driver=docker
 
 ---
 
-### **Order Service**
-- **Base URL:** `http://localhost:3002`
-- **Endpoints:**
-  - **List Orders:**  
-    ```
-    curl http://localhost:3002/orders
-    ```
-    Or open in your browser: [http://localhost:3002/orders](http://localhost:3002/orders)
+## Building Docker Images
+
+The images are built locally inside Minikube using the following commands:
+
+minikube -p minikube docker-env | Invoke-Expression
+
+docker build -t user-service ./Microservices/user-service  
+docker build -t product-service ./Microservices/product-service  
+docker build -t order-service ./Microservices/order-service  
+docker build -t gateway-service ./Microservices/gateway-service  
 
 ---
 
-### **Gateway Service**
-- **Base URL:** `http://localhost:3003/api`
-- **Endpoints:**
-  - **Users:**  
-    ```
-    curl http://localhost:3003/api/users
-    ```
-  - **Products:**  
-    ```
-    curl http://localhost:3003/api/products
-    ```
-  - **Orders:**  
-    ```
-    curl http://localhost:3003/api/orders
-    ```
+## Deploying to Kubernetes
+
+Apply all deployment and service configurations:
+
+kubectl apply -f deployments/  
+kubectl apply -f services/  
+kubectl apply -f ingress/ingress.yaml  
 
 ---
 
-## Instructions
-1. Start all services using the `docker-compose` file:
-   ```
-   docker-compose up
-   ```
-2. Once the services are running, use the above endpoints to verify the functionality.
+## Verifying Deployment
 
-Happy testing!
+Check if all pods are running:
+
+kubectl get pods  
+
+---
+
+## Testing the Application
+
+### Using Port Forward
+
+kubectl port-forward svc/gateway-service 9090:80  
+
+Open in browser:
+http://localhost:9090/api/users  
+
+---
+
+### Using Ingress
+
+Port forward ingress controller:
+
+kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8081:80  
+
+Update hosts file:
+
+127.0.0.1 app.local.com  
+
+Access the application:
+
+http://app.local.com:8081/api/users  
+http://app.local.com:8081/api/products  
+http://app.local.com:8081/api/orders  
+
+---
+
+## Troubleshooting
+
+- If images are not found, rebuild them inside Minikube
+- If pods are stuck, check logs using:
+  
+  kubectl logs <pod-name>
+
+- If ports are already in use, try using another port like 8082
+- If ingress is not working properly, ensure tunnel or port-forward is active
+
+---
+
+## Result
+
+The microservices are successfully deployed and can communicate with each other through the gateway. Ingress routing is also configured for external access.
